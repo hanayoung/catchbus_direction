@@ -14,6 +14,9 @@ function SearchStation({stationToBus})
   const [station, setStation] = useState('');
   const [result, setResult] = useState([]);
   const [initialRegion, setinitialRegion] = useState();
+  const [jsonData,setJsonData]=useState([]);
+  const [latitude,setLatitude]=useState('');
+  const [longitute, setLongitude]=useState('');
   //함수형 컴포넌트 const -> useEffect로 해결
  
   const goBus = (item) => {
@@ -22,6 +25,8 @@ function SearchStation({stationToBus})
 
   const ask = async () => {
     const { coords: { latitude, longitude } } = await Location.getCurrentPositionAsync({ accuracy: 5 }); //coords를 통해 현재 위치의 좌표 받기
+    setLatitude(latitude);
+    setLongitude(longitude);
     setinitialRegion({
       latitude: latitude,
       longitude: longitude,
@@ -33,7 +38,6 @@ function SearchStation({stationToBus})
   const handleStation = text => {
     setStation(text);
   }
-
   const searchStation = async () => {
     try {
       const url = 'http://apis.data.go.kr/6410000/busstationservice/getBusStationList'; 
@@ -67,7 +71,33 @@ function SearchStation({stationToBus})
       //alert(err);
     }
   };
-
+  const searchStationID=async()=>{
+    try{
+      const url='https://api.odsay.com/v1/api/searchStation';
+      var queryParams='?'+encodeURIComponent('apiKey')+'='+'z5Hqo2dueAcuLqjhotmeqGT2Q499QvuS25scQAuC03k';
+      queryParams+='&'+encodeURIComponent('stationName')+'='+encodeURIComponent(station)+'&'+encodeURIComponent('stationClass')+'='+encodeURIComponent('1')+'&'+encodeURIComponent('myLocation')+'='+encodeURIComponent(longitute)+':'+encodeURIComponent(latitude);
+      console.log("station",station);
+      let array=[];
+      let i=0;
+      await axios.get(url+queryParams).then((res)=>{
+        while(1){
+        var tmpnode=new Object();
+        if(i==res.data.result.station.length)
+        break;
+          tmpnode.index=i;
+          tmpnode.stationId=res.data.result.station[i].stationID;
+          tmpnode.stationName=res.data.result.station[i].stationName;
+          tmpnode.x=res.data.result.station[i].x;
+          tmpnode.y=res.data.result.station[i].y;
+          array.push(tmpnode);
+          i++;
+        }
+       setResult(array);
+      });
+    }
+    catch(err){
+    }
+  }
   useEffect(() => {
     ask();
     searchStation();
@@ -107,7 +137,7 @@ function SearchStation({stationToBus})
         )}
       </MapView>
       <FlatList
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.stationId}
         data={result}
         style={[styles.flatlist]}
         renderItem={({ item }) => (

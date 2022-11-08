@@ -28,7 +28,7 @@ const StationList = ({ item, goBus}) => {
         <TouchableOpacity
         onPressOut = {() => {
             goBus(item);
-        }}
+        }}                                                            
         style = {styles.button}
         >
             <Content_name>{item.name}</Content_name>

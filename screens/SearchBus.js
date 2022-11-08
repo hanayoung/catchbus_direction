@@ -30,7 +30,6 @@ margin-bottom : 10px;
 const SearchBus = ({ route, navigation }) => {
 
     const item = route.params.item;
-
     return(
         <Container>
             <SearchBussrc item = {item}/>

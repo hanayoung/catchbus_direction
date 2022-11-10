@@ -57,6 +57,7 @@ const BusList = ({ item, saveResult, storage}) => {
             <Content_name>{item.routeName}</Content_name>
             <Content_locate>{item.predict1}분 후 도착  {item.predict2} 분 후 도착</Content_locate>
             <Content_locate>{item.stationDirection} 방면 </Content_locate>
+            <Content_locate>{item.predict}분 후 회차지에 버스 도착 </Content_locate>
             <IconButton 
             type={item.clicked ? images.clicked : images.unclicked} 
             id={item} 

@@ -9,6 +9,8 @@ import RealTime from '../modules/RealTime';
 import axios from 'axios';
 import { array } from 'prop-types';
 
+//wireshark로 테스트해보기
+//Check the render method of `VirtualizedList`., , 고치기
 const Container = styled.View`
 flex : 1;
 justify-content: center;
@@ -72,8 +74,8 @@ function SearchBus({ item }) {
     }
  
   const Merge =async() => {    //result, routeInfo routeId를 키값으로 병합
-    let buslist = [];
-    console.log("result.length",result.length);
+   // let buslist = [];
+   // console.log("result.length",result.length);
     for (var i = 0; i < result.length; i++) {
       let routeId = result[i].routeId;
       let route = routeInfo.find((r) => r.paramID == routeId)
@@ -175,13 +177,14 @@ function SearchBus({ item }) {
         routearray.push(tmpnode.routeId);
         tmpnode.clicked = false;
         tmpnode.predict1 = xmlDoc.getElementsByTagName("predictTime1")[i].textContent;
-        tmpnode.loc1 = xmlDoc.getElementsByTagName("locationNo1")[i].textContent;
-        tmpnode.remain1 = xmlDoc.getElementsByTagName("remainSeatCnt1")[i].textContent;
+       // tmpnode.loc1 = xmlDoc.getElementsByTagName("locationNo1")[i].textContent;
+        //tmpnode.remain1 = xmlDoc.getElementsByTagName("remainSeatCnt1")[i].textContent;
         tmpnode.predict2 = xmlDoc.getElementsByTagName("predictTime2")[i].textContent;
-        tmpnode.loc2 = xmlDoc.getElementsByTagName("locationNo2")[i].textContent;
-        tmpnode.remain2 = xmlDoc.getElementsByTagName("remainSeatCnt2")[i].textContent;
+      //  tmpnode.loc2 = xmlDoc.getElementsByTagName("locationNo2")[i].textContent;
+      //  tmpnode.remain2 = xmlDoc.getElementsByTagName("remainSeatCnt2")[i].textContent;
         tmpnode.staOrder = xmlDoc.getElementsByTagName("staOrder")[i].textContent;
         tmpnode.endName=undefined;
+        tmpnode.breakFlag=undefined;
         array.push(tmpnode);
         for (var routeId in storage) {
           if (tmpnode.routeId == routeId)
@@ -212,6 +215,7 @@ function SearchBus({ item }) {
       route.paramID = routeId;
       route.turnYn="Y";
       let i=0;
+     // console.log("이게 되나?",xmlDoc.getElementsByTagName("turnYn").length);
       while(1){
         if(xmlDoc.getElementsByTagName("turnYn")[i].textContent=="Y"){
             route.stationSeq=xmlDoc.getElementsByTagName("stationSeq")[i].textContent;
@@ -227,15 +231,13 @@ function SearchBus({ item }) {
   }
   const findDirection=async()=>{
     for(let i=0;i<result.length;i++){
-      console.log(endStation.length);
       for(let j=0;j<endStation.length;j++){
         if(endStation[j].paramID==result[i].routeId){
-          console.log("find");
           if(Number(endStation[j].stationSeq)<Number(result[i].staOrder)){
             result[i].stationDirectionId=1;//0이 종점을 항헤 가는 거, 1이 기점을 향해 이건 찐방면 
             result[i].stationDirection=result[i].startName;
-            console.log("in");
-            if(Math.abs(Number(endStation[j].stationSeq)-Number(result[i].staOrder))<8)
+            let count=Number(result[i].staOrder)-Number(endStation[j].stationSeq);
+            if(count<8&&count>=0)
             result[i].breakFlag=true;
             else{
               result[i].breakFlag=false;
@@ -244,7 +246,7 @@ function SearchBus({ item }) {
           else{
             result[i].stationDirectionId=0;
             result[i].stationDirection=result[i].endName;
-            if(Math.abs(Number(endStation[j].stationSeq)-Number(result[i].staOrder))<8)
+            if(Number(result[i].staOrder)<8)
             result[i].breakFlag=true;
             else{
               result[i].breakFlag=false;
@@ -253,27 +255,41 @@ function SearchBus({ item }) {
       }
       }
     }// endStation에 있는 paramID랑 result에 있는 routeId랑 비교해서 같을 경우, stationSeq랑 staOrder 비교하기
- //   getEndStationInfo();
-    setMerge(result);
+   // setMerge(result);
+    if(result[result.length-1].breakFlag!=undefined){
+    getEndStationInfo();
+   }
   }
-  // const getEndStationInfo=async()=>{
-  //   for(let i=0;i<result.length;i++){
-  //   if(result[i].breakFlag==true){
-  //     if(result[i].stationDirectionId==1){
-  //       let data=await axios.get(`http://apis.data.go.kr/6410000/busarrivalservice/getBusArrivalList?serviceKey=UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D&stationId=${result[i].endstationId}`)
-  //       let xmlParser = new DOMParser();
-  //       let xmlDoc = xmlParser.parseFromString(data.data, "text/xml");  
-  //       result[i].predict=xmlDoc.getElementsByTagName("predict1")[0].textContent; 
-  //     }else{
-  //       let data=await axios.get(`http://apis.data.go.kr/6410000/busarrivalservice/getBusArrivalList?serviceKey=UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D&stationId=${result[i].startstationId}`)
-  //       let xmlParser = new DOMParser();
-  //       let xmlDoc = xmlParser.parseFromString(data.data, "text/xml");  
-  //       result[i].predict=xmlDoc.getElementsByTagName("predict1")[0].textContent; 
-  //     }
-  //   }
-  // }
-  // setMerge(result);
-  // }
+  const getEndStationInfo=async()=>{
+    for(let i=0;i<result.length;i++){
+    if(result[i].breakFlag==true){
+      if(result[i].stationDirectionId==1){
+        let data=await axios.get(`http://apis.data.go.kr/6410000/busarrivalservice/getBusArrivalList?serviceKey=UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D&stationId=${result[i].endStationId}`)
+        let xmlParser = new DOMParser();
+        let xmlDoc = xmlParser.parseFromString(data.data, "text/xml");  
+        for(let j=0;j<xmlDoc.getElementsByTagName("routeId").length;j++){
+          if(xmlDoc.getElementsByTagName("routeId")[j].textContent==result[i].routeId){
+            result[i].predict=xmlDoc.getElementsByTagName("predictTime1")[j].textContent;
+            break;
+          }
+        }   
+       
+      }else{
+        let data=await axios.get(`http://apis.data.go.kr/6410000/busarrivalservice/getBusArrivalList?serviceKey=UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D&stationId=${result[i].startStationId}`)
+        let xmlParser = new DOMParser();
+        let xmlDoc = xmlParser.parseFromString(data.data, "text/xml"); 
+        for(let j=0;j<xmlDoc.getElementsByTagName("routeId").length;j++){
+          if(xmlDoc.getElementsByTagName("routeId")[j].textContent==result[i].routeId){
+          result[i].predict=xmlDoc.getElementsByTagName("predictTime1")[j].textContent;
+          break;
+          }
+        }   
+        
+      }
+    }
+  }
+  setMerge(result);
+  }
   // 렌더링 핸들링
   useEffect(() => {
     Merge();
@@ -311,7 +327,11 @@ function SearchBus({ item }) {
     />
   );
 }
+// async function delay_splash(){
+//   await SplashScreen.preventAutoHideAsync();
+//   await SplashScreen.hideAsync();
 
+// }
 const styles = StyleSheet.create({
   flatlist: {
     flex: 1,

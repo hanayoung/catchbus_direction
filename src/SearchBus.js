@@ -41,10 +41,12 @@ function SearchBus({ item }) {
       function tick() {
         savedCallback.current(); // tick이 실행되면 callback 함수를 실행시킨다.
       }
+      if(delay!==null){
         let id = setInterval(tick, delay); // delay에 맞추어 interval을 새로 실행시킨다.
         return () => clearInterval(id); // unmount될 때 clearInterval을 해준다.
-    }, [delay]); // delay가 바뀔 때마다 새로 실행된다.
-  }
+      }
+      }, [delay]); // delay가 바뀔 때마다 새로 실행된다.
+};
 
 
   const [result, setResult] = useState([]); //도착정보 저장
@@ -53,7 +55,7 @@ function SearchBus({ item }) {
   const [isReady, setIsReady] = useState(false);
   const [storage, setStorage] = useState({});
   const [isRunning, setIsRunning] = useState(false);
-  const [delay, setDelay] = useState(1000000);
+  const [delay, setDelay] = useState(10000);
   const [routearray, setRouteArray] = useState([]);
   const [ok, setOk] = useState(false);
   const [endStation, setEndStation]=useState([]);
@@ -75,7 +77,7 @@ function SearchBus({ item }) {
  
   const Merge =async() => {    //result, routeInfo routeId를 키값으로 병합
    // let buslist = [];
-   // console.log("result.length",result.length);
+   // console.log("result.length in Merge",result.length);
     for (var i = 0; i < result.length; i++) {
       let routeId = result[i].routeId;
       let route = routeInfo.find((r) => r.paramID == routeId)
@@ -89,7 +91,9 @@ function SearchBus({ item }) {
       }
     }
     if(result.length!=0&&result[result.length-1].endName!=undefined){
+     // console.log("findDirection start ",new Date())
       findDirection();
+      
     }
  //   setMerge(buslist);
   };
@@ -111,6 +115,7 @@ function SearchBus({ item }) {
   // 여기서부터 루트아이디 핸들링, 검색, Input : routeId (from busSearch), Output: 노선 번호/유형/종점정보
   const searchRouteName = async (routeId) => {
     try {
+      findTurnYn(routeId);
       const url = 'http://apis.data.go.kr/6410000/busrouteservice/getBusRouteInfoItem'; 
       var queryParams = '?' + encodeURIComponent('serviceKey') + '='+'UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D';
       queryParams += '&' + encodeURIComponent('routeId') + '=' + encodeURIComponent(routeId); // xhr.open('GET', url + queryParams);    
@@ -126,8 +131,9 @@ function SearchBus({ item }) {
       route.region = xmlDoc.getElementsByTagName("regionName")[0].textContent;
       route.startStationId=xmlDoc.getElementsByTagName("startStationId")[0].textContent;
       route.endStationId=xmlDoc.getElementsByTagName("endStationId")[0].textContent;
+     // console.log("start handleRouteInfo ",new Date());
       handleRouteInfo(route);
-      findTurnYn(routeId);
+      
     }
     catch (err) {
     //  console.log(err);
@@ -159,18 +165,20 @@ function SearchBus({ item }) {
   // }
   // 여기서부터 버스 도착 정보 검색, (Input; stationID, Output: 노선 정보와 기타 도착 정보)
   const searchBus = async () => {
+   // console.log("searchBus start",new Date());
     //getBusArrivalList, input param : stationId (ID)
     try {
+      setIsRunning(true);
       const url = 'http://apis.data.go.kr/6410000/busarrivalservice/getBusArrivalList'; 
       var queryParams = '?' + encodeURIComponent('serviceKey') + '='+'UkgvlYP2LDE6M%2Blz55Fb0XVdmswp%2Fh8uAUZEzUbby3OYNo80KGGV1wtqyFG5IY0uwwF0LtSDR%2FIwPGVRJCnPyw%3D%3D';
       queryParams += '&' + encodeURIComponent('stationId') + '=' + encodeURIComponent(item.id); // xhr.open('GET', url + queryParams); 
       var data = await axios.get(url+queryParams);
       let xmlParser = new DOMParser();
       let xmlDoc = xmlParser.parseFromString(data.data, "text/xml");    
-      setIsRunning(true);
       let i = 0;
       let array = [];
       let routearray = [];
+     // console.log("searchBus -ing",new Date());
       while (1) {
         var tmpnode = new Object();
         tmpnode.routeId = xmlDoc.getElementsByTagName("routeId")[i].textContent;
@@ -192,6 +200,7 @@ function SearchBus({ item }) {
         }
         i++;
         if (xmlDoc.getElementsByTagName("routeId")[i] == undefined) { 
+         // console.log("break,setRouteArray",i, new Date());
           setRouteArray(routearray);
           break; 
         }
@@ -215,11 +224,11 @@ function SearchBus({ item }) {
       route.paramID = routeId;
       route.turnYn="Y";
       let i=0;
-     // console.log("이게 되나?",xmlDoc.getElementsByTagName("turnYn").length);
       while(1){
         if(xmlDoc.getElementsByTagName("turnYn")[i].textContent=="Y"){
             route.stationSeq=xmlDoc.getElementsByTagName("stationSeq")[i].textContent;
           handleEndStation(route);
+        //  console.log("break findTurnYn",new Date());
             break;
         }
         else i++;
@@ -230,6 +239,7 @@ function SearchBus({ item }) {
     }
   }
   const findDirection=async()=>{
+   // console.log("findDirection start",new Date());
     for(let i=0;i<result.length;i++){
       for(let j=0;j<endStation.length;j++){
         if(endStation[j].paramID==result[i].routeId){
@@ -256,8 +266,11 @@ function SearchBus({ item }) {
       }
     }// endStation에 있는 paramID랑 result에 있는 routeId랑 비교해서 같을 경우, stationSeq랑 staOrder 비교하기
    // setMerge(result);
+  // console.log("findDirection end",new Date());
     if(result[result.length-1].breakFlag!=undefined){
+     // console.log("getEndStationInfo start",new Date());
     getEndStationInfo();
+
    }
   }
   const getEndStationInfo=async()=>{
@@ -270,6 +283,8 @@ function SearchBus({ item }) {
         for(let j=0;j<xmlDoc.getElementsByTagName("routeId").length;j++){
           if(xmlDoc.getElementsByTagName("routeId")[j].textContent==result[i].routeId){
             result[i].predict=xmlDoc.getElementsByTagName("predictTime1")[j].textContent;
+         console.log("finish ",new Date(), result[i].routeName);
+      //  console.log("result",result);
             break;
           }
         }   
@@ -281,28 +296,29 @@ function SearchBus({ item }) {
         for(let j=0;j<xmlDoc.getElementsByTagName("routeId").length;j++){
           if(xmlDoc.getElementsByTagName("routeId")[j].textContent==result[i].routeId){
           result[i].predict=xmlDoc.getElementsByTagName("predictTime1")[j].textContent;
+        //console.log("result",result);
+           console.log("finish ",new Date(), result[i].routeName);
           break;
           }
         }   
-        
       }
     }
   }
   setMerge(result);
   }
-  // 렌더링 핸들링
-  useEffect(() => {
-    Merge();
-  }, [result]);
-
-  useInterval(() => {
-    searchBus();
-  }, isRunning ? delay : null);
-
+   useInterval(() => {
+     console.log("call searchBus",isRunning, new Date());
+     searchBus();
+   }, isRunning ? delay : 1);
   useEffect(()=>{
+    //console.log("call handleRouteArray ",new Date());
     handleRouteArray();
   }, [ok]);
-
+  // 렌더링 핸들링
+  useEffect(()=>{
+    console.log("call merge by result", new Date());
+    Merge();
+  },[result])
   return isReady ? (
       <Container>
       <FlatList
